@@ -8,8 +8,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Zkopíruj ostatní soubory
+# Zkopíruj ostatní soubory aplikace
 COPY . .
 
-# Spusť Flask aplikaci
+# Exponuj port 8007 (port, na kterém běží Flask aplikace)
+EXPOSE 8007
+
+# Spusť Flask aplikaci na portu 8007
 CMD ["python", "app.py"]
