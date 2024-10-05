@@ -1,2 +1,4 @@
 Frontend: React
 Backend: Flask python
+
+Spusteni: docker-compose up --build
