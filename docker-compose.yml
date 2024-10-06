@@ -1,18 +1,33 @@
 version: '3.8'
 
 services:
-  backend:
+  sk08-web:
+    container_name: sk08-web  # Jméno backendového kontejneru
     build:
       context: ./backend
     image: jansodomka/wea_semestralni_prace:backend
     ports:
-      - "5000:5000"
+      - "8007:8007"  # Mapování portů - 8007 je specifikovaný port naší skupiny
+    volumes:
+      - "/home/cerny/logs/sk08:/app/logs"  # Mapování logů do adresáře sk08 na host stroji
+    networks:
+      - cdb-network  # Externí síť pro komunikaci s ostatními aplikacemi
+    environment:
+      - DATABASE_URL=sqlite:///app.db  # Připojení k SQLite databázi
 
   frontend:
     build:
       context: ./frontend
     image: jansodomka/wea_semestralni_prace:frontend
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Frontend také používá port 8007 na hostiteli
     depends_on:
-      - backend
+      - sk08-web
+    networks:
+      - cdb-network
+
+networks:
+  cdb-network:
+    name: cdb-network  # Název externí sítě
+    driver: bridge
+    external: true  # Zajišťuje, že síť je dostupná pro externí aplikace

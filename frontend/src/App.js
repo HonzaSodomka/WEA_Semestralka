@@ -5,7 +5,7 @@ function App() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:5000/')
+    axios.get('http://sk08-web:5000/')  // Změna z localhost na název backend služby
       .then(response => {
         setMessage(response.data);
       })
