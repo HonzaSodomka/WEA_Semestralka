@@ -3,3 +3,4 @@ Backend: Flask python
 
 
 errors logger, rozdelit loggery
+Spusteni: docker-compose up --build
