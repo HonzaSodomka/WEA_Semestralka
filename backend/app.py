@@ -1,5 +1,5 @@
 import logging
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
@@ -15,21 +15,30 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Definice modelu
-class Message(db.Model):
+class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    image_url = db.Column(db.String(200), nullable=False)
 
 # Konfigurace logování
 logging.basicConfig(
-    filename='app.log',  # Zde zvolíš cestu pro logovací soubor
-    level=logging.INFO,   # Úroveň logování (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    format='%(asctime)s - %(levelname)s - %(message)s'  # Formát logovacích zpráv
+    filename='app.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
 @app.route('/')
-def hello_world():
-    app.logger.info('Zpráva pro logování: Hello, World!')  # Logování zprávy
-    return 'Hello, World!'
+def catalog():
+    # Příklad knih (můžete to nahradit databází nebo jiným způsobem získání dat)
+    books = [
+        {"title": "Kniha 1", "price": 199.99, "image_url": " "},
+        {"title": "Kniha 2", "price": 249.99, "image_url": " "},
+        {"title": "Kniha 3", "price": 299.99, "image_url": " "},
+        {"title": "Kniha 4", "price": 349.99, "image_url": " "},
+    ]
+    
+    return render_template('catalog.html', books=books)
 
 # Vytvoření tabulek v databázi
 @app.before_first_request
