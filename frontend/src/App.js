@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import './App.css'; // Ujisti se, že máš CSS soubor importován
+import './App.css';
 
 function App() {
   const [books, setBooks] = useState([]);

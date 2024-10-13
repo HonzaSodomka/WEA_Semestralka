@@ -1,76 +1,129 @@
-import logging
-from logging.handlers import RotatingFileHandler
 from flask import Flask, jsonify
-from flask_cors import CORS
-import os
 from flask_sqlalchemy import SQLAlchemy
-from database.models import db, Book
-from database.database_operations import get_all_books
+from sqlalchemy.exc import SQLAlchemyError
+import pandas as pd
+import requests
 
-# Vytvoření a konfigurace aplikace
 app = Flask(__name__)
-CORS(app)
-
-# Inicializace databáze
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@db:5432/mydatabase'
-db.init_app(app)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-with app.app_context():
-    db.create_all()
+class Book(db.Model):
+    __tablename__ = 'books'
 
-# Zajištění existence adresáře pro logy
-log_dir = os.path.join(os.path.dirname(__file__), 'logs')
-os.makedirs(log_dir, exist_ok=True)
+    ISBN10 = db.Column(db.String(10), primary_key=True)
+    ISBN13 = db.Column(db.String(13), unique=True, nullable=False)
+    Title = db.Column(db.String(255), nullable=False)
+    Author = db.Column(db.String(255), nullable=False)
+    Genres = db.Column(db.String(255))
+    Cover_Image = db.Column(db.String(255))
+    Critics_Rating = db.Column(db.Float)
+    Year_of_Publication = db.Column(db.Integer)
+    Number_of_Pages = db.Column(db.Integer)
+    Average_Customer_Rating = db.Column(db.Float)
+    Number_of_Ratings = db.Column(db.Integer)
 
-# Konfigurace logování
-# Vytvoření handleru pro logy úrovně INFO
-info_handler = RotatingFileHandler(os.path.join(log_dir, 'info.log'), maxBytes=5*1024*1024, backupCount=5)
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+def add_book(isbn10, isbn13, title, author, genres=None, cover_image=None, critics_rating=None, 
+             year_of_publication=None, number_of_pages=None, average_customer_rating=None, number_of_ratings=None):
+    try:
+        new_book = Book(
+            ISBN10=isbn10,
+            ISBN13=isbn13,
+            Title=title,
+            Author=author,
+            Genres=genres,
+            Cover_Image=cover_image,
+            Critics_Rating=critics_rating,
+            Year_of_Publication=year_of_publication,
+            Number_of_Pages=number_of_pages,
+            Average_Customer_Rating=average_customer_rating,
+            Number_of_Ratings=number_of_ratings
+        )
+        db.session.add(new_book)
+        db.session.commit()
+        return True, "Book added successfully"
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return False, str(e)
 
-# Vytvoření handleru pro logy úrovně ERROR
-error_handler = RotatingFileHandler(os.path.join(log_dir, 'error.log'), maxBytes=5*1024*1024, backupCount=5)
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+def get_all_books():
+    try:
+        books = Book.query.all()
+        return books
+    except SQLAlchemyError as e:
+        return None
 
-# Vytvoření a konfigurace loggerů
-info_logger = logging.getLogger('info_logger')
-info_logger.setLevel(logging.INFO)
-info_logger.addHandler(info_handler)
-
-error_logger = logging.getLogger('error_logger')
-error_logger.setLevel(logging.ERROR)
-error_logger.addHandler(error_handler)
-
-@app.route('/')
-def hello_world():
-    info_logger.info('Zpráva pro logování: Hello, World!')
-    error_logger.error('Testovací chybová zpráva')
-    return 'Hello, World!'
 @app.route('/api/books')
 def get_books():
     books = get_all_books()
     if books is None:
-        error_logger.error('Chyba při získávání knih z databáze')
         return jsonify({'error': 'Nepodařilo se získat knihy'}), 500
-    
-    books_data = [{
-        'ISBN10': book.ISBN10,
-        'ISBN13': book.ISBN13,
-        'Title': book.Title,
-        'Author': book.Author,
-        'Genres': book.Genres,
-        'Cover_Image': book.Cover_Image,  # Include cover image
-        'Year_of_Publication': book.Year_of_Publication,
-        'Number_of_Pages': book.Number_of_Pages,
-        'Average_Customer_Rating': book.Average_Customer_Rating,
-        'Number_of_Ratings': book.Number_of_Ratings
-    } for book in books]
-    
-    info_logger.info(f'Vráceno {len(books_data)} knih')
-    return jsonify(books_data)
 
+    return jsonify([
+        {
+            'ISBN10': book.ISBN10,
+            'ISBN13': book.ISBN13,
+            'Title': book.Title,
+            'Author': book.Author,
+            'Genres': book.Genres,
+            'Cover_Image': book.Cover_Image,
+            'Critics_Rating': book.Critics_Rating,
+            'Year_of_Publication': book.Year_of_Publication,
+            'Number_of_Pages': book.Number_of_Pages,
+            'Average_Customer_Rating': book.Average_Customer_Rating,
+            'Number_of_Ratings': book.Number_of_Ratings
+        } for book in books
+    ])
+
+@app.route('/api/import_mock_books')
+def import_mock_books():
+    df = pd.read_csv('data_mock.csv', header=None)
+    
+    # Vymazání starých knih
+    db.session.query(Book).delete()
+    
+    for index, row in df.iterrows():
+        add_book(
+            isbn10=row[1],
+            isbn13=row[0],
+            title=row[2],
+            author=row[4],
+            genres=row[5],
+            cover_image=row[6],
+            critics_rating=row[8],
+            year_of_publication=row[7],
+            number_of_pages=row[9],
+            average_customer_rating=row[10],
+            number_of_ratings=row[11]
+        )
+
+    return jsonify({'message': f'Imported {len(df)} books.'})
+
+@app.route('/api/import_books_from_cdb', methods=['POST'])
+def import_books_from_cdb():
+    response = requests.post('http://wea.nti.tul.cz:1337/data', headers={'accept': '*/*', 'Content-Type': 'application/json'})
+    data = response.json()
+
+    # Vymazání starých knih
+    db.session.query(Book).delete()
+
+    for item in data:
+        add_book(
+            isbn10=item['isbn10'],
+            isbn13=item['isbn13'],
+            title=item['title'],
+            author=item['authors'],
+            genres=item['categories'],
+            cover_image=item['thumbnail'],
+            critics_rating=item.get('average_rating'),
+            year_of_publication=item.get('published_year'),
+            number_of_pages=item.get('num_pages'),
+            average_customer_rating=None,  # Předpokládáme, že není v datech
+            number_of_ratings=None  # Předpokládáme, že není v datech
+        )
+
+    return jsonify({'message': 'Books imported from CDB successfully.'})
 
 if __name__ == '__main__':
-    # V produkčním prostředí byste měli nastavit debug=False
-    app.run(host='0.0.0.0', port=8007, debug=True)
+    app.run(port=8007)
