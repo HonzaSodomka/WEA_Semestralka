@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import './App.css'; // Ujisti se, že máš CSS soubor importován
+import './App.css';
 
 function App() {
   const [books, setBooks] = useState([]);
@@ -8,7 +8,12 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:8007/api/books')
+    // Nejprve zavoláme endpoint pro fetch dat a jejich uložení do DB
+    axios.get('http://localhost:8007/api/fetch_books')
+      .then(() => {
+        // Poté získáme data z naší databáze
+        return axios.get('http://localhost:8007/api/books');
+      })
       .then(response => {
         setBooks(response.data);
         setLoading(false);
