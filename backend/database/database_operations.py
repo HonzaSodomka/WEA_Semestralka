@@ -108,26 +108,43 @@ def delete_book(isbn10):
         return False, str(e)
 
 # Funkce pro získání všech knih (z reálné databáze nebo mock dat)
-def get_all_books():
+def get_all_books(page=1, per_page=25):
     if os.getenv('FLASK_ENV') == 'development':
-        # Pokud je prostředí ve vývojovém režimu, načti mock data
-        return load_mock_data()
+        # Načtení mock dat
+        all_books = load_mock_data()
+        # Implementace stránkování pro mock data
+        start = (page - 1) * per_page
+        end = start + per_page
+        return all_books[start:end], len(all_books)
     else:
         try:
-            books = Book.query.all()
-            return books
+            books = Book.query.paginate(page=page, per_page=per_page, error_out=False)
+            return books.items, books.total
         except SQLAlchemyError as e:
-            return None
+            return None, 0
 
 # Funkce pro vyhledávání knih
-def search_books(query):
-    try:
-        books = Book.query.filter(
-            (Book.Title.ilike(f'%{query}%')) |
-            (Book.Author.ilike(f'%{query}%')) |
-            (Book.ISBN10.ilike(f'%{query}%')) |
-            (Book.ISBN13.ilike(f'%{query}%'))
-        ).all()
-        return books
-    except SQLAlchemyError as e:
-        return None
+def search_books(query, page=1, per_page=25):
+    if os.getenv('FLASK_ENV') == 'development':
+        # Načtení mock dat
+        all_books = load_mock_data()
+        # Implementace vyhledávání a stránkování pro mock data
+        filtered_books = [book for book in all_books if 
+                          query.lower() in book['Title'].lower() or 
+                          query.lower() in book['Author'].lower() or 
+                          query in book['ISBN10'] or 
+                          query in book['ISBN13']]
+        start = (page - 1) * per_page
+        end = start + per_page
+        return filtered_books[start:end], len(filtered_books)
+    else:
+        try:
+            books = Book.query.filter(
+                (Book.Title.ilike(f'%{query}%')) |
+                (Book.Author.ilike(f'%{query}%')) |
+                (Book.ISBN10.ilike(f'%{query}%')) |
+                (Book.ISBN13.ilike(f'%{query}%'))
+            ).paginate(page=page, per_page=per_page, error_out=False)
+            return books.items, books.total
+        except SQLAlchemyError as e:
+            return None, 0
