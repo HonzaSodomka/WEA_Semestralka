@@ -5,6 +5,7 @@ import { SearchForm } from './components/SearchForm';
 import { BookList } from './components/BookList';
 import { Pagination } from './components/Pagination';
 import { translations } from './components/Translations';
+import BookDetail from './components/BookDetail';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import './App.css';
@@ -30,6 +31,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [currentView, setCurrentView] = useState('list');
+  const [selectedBookIsbn, setSelectedBookIsbn] = useState(null);
 
   // Efekty
   useEffect(() => {
@@ -138,6 +141,16 @@ function App() {
     setShowLoginForm(false);
   };
 
+  const handleBookSelect = (isbn) => {
+    setSelectedBookIsbn(isbn);
+    setCurrentView('detail');
+  };
+
+  const handleBackToList = () => {
+    setCurrentView('list');
+    setSelectedBookIsbn(null);
+  };
+
   // Loading a Error stavy
   if (loading) return (
     <div className="loading-container">
@@ -179,34 +192,48 @@ function App() {
           language={language} 
         />
       )}
-      
-      <SearchForm 
-        searchQueries={searchQueries}
-        handleSearchChange={handleSearchChange}
-        handleSearchSubmit={handleSearchSubmit}
-        handleClearSearch={handleClearSearch}
-        currentSearchQueries={currentSearchQueries}
-        translations={translations}
-        language={language}
-      />
 
-      {books.length > 0 ? (
+      {currentView === 'list' && (
         <>
-          <BookList 
-            books={books}
+          <SearchForm 
+            searchQueries={searchQueries}
+            handleSearchChange={handleSearchChange}
+            handleSearchSubmit={handleSearchSubmit}
+            handleClearSearch={handleClearSearch}
+            currentSearchQueries={currentSearchQueries}
             translations={translations}
             language={language}
           />
-          <Pagination 
-            currentPage={currentPage}
-            totalPages={totalPages}
-            handlePageChange={handlePageChange}
-            translations={translations}
-            language={language}
-          />
+
+          {books.length > 0 ? (
+            <>
+              <BookList 
+                books={books}
+                translations={translations}
+                language={language}
+                onBookSelect={handleBookSelect}
+              />
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                handlePageChange={handlePageChange}
+                translations={translations}
+                language={language}
+              />
+            </>
+          ) : (
+            <div className="no-results">{translations[language].noResults}</div>
+          )}
         </>
-      ) : (
-        <div className="no-results">{translations[language].noResults}</div>
+      )}
+
+      {currentView === 'detail' && (
+        <BookDetail 
+          isbn={selectedBookIsbn}
+          translations={translations}
+          language={language}
+          onBackToList={handleBackToList}
+        />
       )}
     </div>
   );
