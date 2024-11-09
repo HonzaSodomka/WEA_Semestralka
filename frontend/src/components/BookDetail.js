@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import BookComments from './BookComments';
+import BookRating from './BookRating';
 
 const BookDetail = ({ 
   isbn, 
@@ -106,7 +107,10 @@ const BookDetail = ({
             )}
           </div>
         </div>
-        
+        <BookRating 
+          isbn={book.ISBN10} 
+          user={user}
+        />
         {/* Add Comments Section */}
         <BookComments 
           isbn={book.ISBN10} 
