@@ -8,7 +8,9 @@ import { translations } from './components/Translations';
 import BookDetail from './components/BookDetail';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
-import ProfileForm from './components/ProfileForm';  // Nový import
+import ProfileForm from './components/ProfileForm';
+import ShoppingCart from './components/ShoppingCart';
+
 import './App.css';
 axios.defaults.withCredentials = true; 
 
@@ -38,7 +40,9 @@ function App() {
   const [currentView, setCurrentView] = useState('list');
   const [selectedBookIsbn, setSelectedBookIsbn] = useState(null);
   const [showFavorites, setShowFavorites] = useState(false);
-  const [showProfileForm, setShowProfileForm] = useState(false);  // Nový state
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [showShoppingCart, setShowShoppingCart] = useState(false);
+
 
   // Efekty
   useEffect(() => {
@@ -188,6 +192,16 @@ function App() {
     setSelectedBookIsbn(null);
   };
 
+  const toggleShoppingCart = () => {
+    setCurrentView('cart');
+    setShowShoppingCart(true);
+  };
+
+  const handleBackFromCart = () => {
+    setCurrentView('list');
+    setShowShoppingCart(false);
+  };
+
   // Loading a Error stavy
   if (loading) return (
     <div className="loading-container">
@@ -211,7 +225,8 @@ function App() {
         handleLogout={handleLogout}
         toggleLoginForm={toggleLoginForm}
         toggleRegisterForm={toggleRegisterForm}
-        toggleProfileForm={toggleProfileForm}  // Nová prop
+        toggleProfileForm={toggleProfileForm}
+        toggleShoppingCart={toggleShoppingCart}
         translations={translations}
       />
       
@@ -295,8 +310,18 @@ function App() {
           onToggleFavorites={handleToggleFavorites}
         />
       )}
+
+      {currentView === 'cart' && (
+        <ShoppingCart 
+          language={language}
+          translations={translations}
+          user={user}
+          onBackToList={handleBackFromCart}
+        />
+      )}
     </div>
   );
 }
+
 
 export default App;
