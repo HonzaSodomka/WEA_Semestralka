@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Heart, Star } from 'lucide-react';
 import BookComments from './BookComments';
 import BookRating from './BookRating';
 
@@ -104,15 +105,11 @@ const BookDetail = ({
       });
       
       const data = await response.json();
-      setIsInCart(data.is_favorite);
+      setIsInCart(data.is_in_cart);
     } catch (err) {
       console.error('Failed to check cart status:', err);
     }
   };
-
-  useEffect(() => {
-    fetchBookDetail();
-  }, [isbn, language]);
 
   const toggleCart = async () => {
     if (!user) {
@@ -159,9 +156,52 @@ const BookDetail = ({
     }
   };
 
+  const CartButton = () => (
+    <button 
+      onClick={toggleCart}
+      disabled={isCartLoading}
+      className={`flex items-center ${
+        isInCart 
+          ? 'bg-green-100 hover:bg-green-200' 
+          : 'bg-gray-100 hover:bg-gray-200'
+      } ${isCartLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      aria-label={isInCart ? translations[language].removeFromCart : translations[language].addToCart}
+    >
+      <ShoppingCart 
+        size={24}
+        stroke={isInCart ? '#16a34a' : '#4b5563'} 
+        fill={isInCart ? '#dcfce7' : 'none'}
+      />
+      <span className={`ml-2 text-sm font-medium ${
+        isInCart ? 'text-green-600' : 'text-gray-600'
+      }`}>
+        {isInCart ? translations[language].inCart : translations[language].addToCart}
+      </span>
+    </button>
+  );
+
+  const FavoriteButton = () => (
+    <button 
+      onClick={toggleFavorite}
+      disabled={isFavoriteLoading}
+      className={`flex items-center ${
+        book?.is_favorite 
+          ? 'bg-red-100 hover:bg-red-200' 
+          : 'bg-gray-100 hover:bg-gray-200'
+      } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      aria-label={book?.is_favorite ? translations[language].removeFromFavorites : translations[language].addToFavorites}
+    >
+      <Heart 
+        size={24}
+        stroke={book?.is_favorite ? '#dc2626' : '#4b5563'}
+        fill={book?.is_favorite ? '#fee2e2' : 'none'}
+      />
+    </button>
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center">
         <div className="loading-message">{translations[language].loading}</div>
       </div>
     );
@@ -169,7 +209,7 @@ const BookDetail = ({
 
   if (error) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center">
         <div className="error-message text-red-500">{error}</div>
       </div>
     );
@@ -177,7 +217,7 @@ const BookDetail = ({
 
   if (!book) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center">
         <div className="not-found-message">{translations[language].bookNotFound}</div>
       </div>
     );
@@ -187,7 +227,7 @@ const BookDetail = ({
     <div className="book-detail-container">
       <button
         onClick={onBackToList}
-        className="back-button mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded"
+        className="back-button"
       >
         {translations[language].back}
       </button>
@@ -202,49 +242,21 @@ const BookDetail = ({
         </div>
       )}
 
-      <div className="book-card bg-white shadow-lg rounded-lg p-6">
+      <div className="book-card">
         <div className="book-content">
           <div className="book-header">
-          <div className="flex items-center space-x-2">
-                {user && (
-                  <>
-                    <button 
-                      onClick={toggleCart}
-                      disabled={isCartLoading}
-                      className={`cart-button p-2 rounded-full transition-colors ${
-                        isInCart 
-                          ? 'bg-green-100 hover:bg-green-200' 
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      } ${isCartLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      aria-label={isInCart ? translations[language].removeFromCart : translations[language].addToCart}
-                    >
-                      <span className={`text-2xl ${isInCart ? 'text-green-500' : 'text-gray-400'}`}>
-                        🛒
-                      </span>
-                    </button>
-                    <button 
-                      onClick={toggleFavorite}
-                      disabled={isFavoriteLoading}
-                      className={`favorite-button p-2 rounded-full transition-colors ${
-                        book.is_favorite 
-                          ? 'bg-red-100 hover:bg-red-200' 
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      aria-label={book.is_favorite ? translations[language].removeFromFavorites : translations[language].addToFavorites}
-                    >
-                      <span className={`text-2xl ${book.is_favorite ? 'text-red-500' : 'text-gray-400'}`}>
-                        {book.is_favorite ? '❤️' : '🤍'}
-                      </span>
-                    </button>
-                  </>
-                )}
+          {user && (
+              <div className="flex items-center">
+                <CartButton />
+                <FavoriteButton />
               </div>
+            )}
             {book.Cover_Image && (
-              <div className="book-cover-container mb-4">
+              <div className="book-cover-container">
                 <img
                   src={book.Cover_Image}
                   alt={book.Title}
-                  className="book-cover-image max-w-xs mx-auto rounded shadow"
+                  className="book-cover-image"
                   onError={(e) => {
                     e.target.src = '/placeholder-book.png';
                     e.target.onerror = null;
@@ -252,9 +264,9 @@ const BookDetail = ({
                 />
               </div>
             )}
-            <h2 className="book-author text-xl text-gray-700 mb-4">{book.Author}</h2>
+            <h2 className="book-author">{book.Author}</h2>
             
-            <div className="book-details-grid grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <div className="book-details-grid">
             <div>
                 <p className="book-detail-label">
                   <span className="font-medium">{translations[language].price}:</span> {book.Price || '-'}
@@ -293,28 +305,29 @@ const BookDetail = ({
             </div>
           </div>
 
-          <div className="book-rating-section mb-6">
-            <h3 className="text-lg font-medium mb-2">
-              {translations[language].yourRating}
-            </h3>
-            <BookRating 
-              isbn={book.ISBN10} 
-              user={user}
-              translations={translations}
-              language={language}
-              onRatingUpdate={fetchBookDetail}
-            />
+          <div className="book-rating-section">
+              <h3 className="text-lg font-medium mb-2">
+                {translations[language].yourRating}
+              </h3>
+              <BookRating 
+                isbn={book?.ISBN10} 
+                user={user}
+                translations={translations}
+                language={language}
+                onRatingUpdate={fetchBookDetail}
+                currentRating={book?.user_rating}
+              />
           </div>
 
           <div className="book-description-section">
-            <div className="genres-container mb-4">
-              <h3 className="genres-title text-lg font-medium mb-2">{translations[language].genres}</h3>
+            <div className="genres-container">
+              <h3 className="genres-title">{translations[language].genres}</h3>
               <p className="genres-text">{book.Genres || '-'}</p>
             </div>
 
             {book.Description && (
               <div className="description-container">
-                <h3 className="description-title text-lg font-medium mb-2">{translations[language].description}</h3>
+                <h3 className="description-title">{translations[language].description}</h3>
                 <p className="description-text">{book.Description}</p>
               </div>
             )}
