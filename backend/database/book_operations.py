@@ -111,6 +111,7 @@ def fetch_and_update_books(books_data):
                 new_books += 1
                 newly_added_books.add(isbn10)
                 
+                # Záznam o přidání nové knihy - už bez book_title
                 create_audit_log(
                     event_type=AuditEventType.BOOK_ADD,
                     username="CDB_SYSTEM",
